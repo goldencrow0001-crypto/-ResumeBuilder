@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResumeBuilder - Free Online Resume Creator</title>
+    <meta name="description" content="Create a professional resume in minutes with ResumeBuilder. Free, privacy-focused, and easy to use. Live preview and PDF download available.">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom Scrollbar for editor */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* A4 Paper Styling for Preview */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            margin: 0 auto;
+            position: relative;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #resume-preview, #resume-preview * { visibility: visible; }
+            #resume-preview {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                box-shadow: none;
+            }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 h-screen overflow-hidden flex flex-col">
+
+    <!-- App Header -->
+    <header class="bg-slate-900 text-white h-16 flex items-center justify-between px-6 z-20 shadow-md flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-file-invoice text-blue-400 text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-tight">ResumeBuilder</h1>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="toggleHelp()" class="text-sm bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition" title="About this tool">
+                <i class="fas fa-question-circle"></i> Help
+            </button>
+            <button onclick="clearData()" class="text-sm bg-red-600/10 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded transition border border-red-600/20">
+                Clear
+            </button>
+            <button onclick="loadExample()" class="text-sm bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition">
+                Load Example
+            </button>
+            <button onclick="printResume()" class="text-sm bg-blue-600 hover:bg-blue-700 px-4 py-1.5 rounded font-medium shadow-lg transition flex items-center gap-2">
+                <i class="fas fa-download"></i> Download PDF
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Editor Sidebar -->
+        <aside class="w-full md:w-1/3 lg:w-[450px] bg-white border-r border-gray-200 flex flex-col z-10">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200 overflow-x-auto no-scrollbar">
+                <button onclick="switchTab('personal')" class="tab-btn min-w-[80px] py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50 whitespace-nowrap px-4" data-tab="personal">Personal</button>
+                <button onclick="switchTab('experience')" class="tab-btn min-w-[80px] py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap px-4" data-tab="experience">Work</button>
+                <button onclick="switchTab('projects')" class="tab-btn min-w-[80px] py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap px-4" data-tab="projects">Projects</button>
+                <button onclick="switchTab('education')" class="tab-btn min-w-[80px] py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap px-4" data-tab="education">Education</button>
+                <button onclick="switchTab('skills')" class="tab-btn min-w-[80px] py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap px-4" data-tab="skills">Skills</button>
+                <button onclick="switchTab('more')" class="tab-btn min-w-[80px] py-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap px-4" data-tab="more">More</button>
+            </div>
+
+            <!-- Scrollable Form Area -->
+            <div class="flex-1 overflow-y-auto custom-scroll p-6 bg-gray-50">
+                
+                <!-- Personal Info Tab -->
+                <div id="tab-personal" class="tab-content space-y-4">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Personal Details</h2>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Full Name</label>
+                        <input type="text" id="input-name" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="John Doe" oninput="updateResume()">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Professional Title</label>
+                        <input type="text" id="input-title" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Software Engineer" oninput="updateResume()">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Professional Summary</label>
+                        <textarea id="input-summary" rows="4" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Brief summary of your career..." oninput="updateResume()"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Email</label>
+                            <input type="email" id="input-email" class="w-full p-2 border border-gray-300 rounded text-sm outline-none focus:border-blue-500" oninput="updateResume()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Phone</label>
+                            <input type="text" id="input-phone" class="w-full p-2 border border-gray-300 rounded text-sm outline-none focus:border-blue-500" oninput="updateResume()">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Location</label>
+                            <input type="text" id="input-location" class="w-full p-2 border border-gray-300 rounded text-sm outline-none focus:border-blue-500" oninput="updateResume()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Website</label>
+                            <input type="text" id="input-website" class="w-full p-2 border border-gray-300 rounded text-sm outline-none focus:border-blue-500" placeholder="mysite.com" oninput="updateResume()">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">LinkedIn / Social</label>
+                        <input type="text" id="input-linkedin" class="w-full p-2 border border-gray-300 rounded text-sm outline-none focus:border-blue-500" placeholder="linkedin.com/in/user" oninput="updateResume()">
+                    </div>
+                </div>
+
+                <!-- Experience Tab -->
+                <div id="tab-experience" class="tab-content hidden space-y-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">Work Experience</h2>
+                        <button onclick="addExperience()" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                    <div id="experience-forms" class="space-y-6">
+                        <!-- Dynamic forms injected here -->
+                    </div>
+                </div>
+
+                <!-- Projects Tab -->
+                <div id="tab-projects" class="tab-content hidden space-y-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">Projects</h2>
+                        <button onclick="addProject()" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                    <div id="project-forms" class="space-y-6">
+                        <!-- Dynamic forms injected here -->
+                    </div>
+                </div>
+
+                <!-- Education Tab -->
+                <div id="tab-education" class="tab-content hidden space-y-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">Education</h2>
+                        <button onclick="addEducation()" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                    <div id="education-forms" class="space-y-6">
+                        <!-- Dynamic forms injected here -->
+                    </div>
+                </div>
+
+                <!-- Skills Tab -->
+                <div id="tab-skills" class="tab-content hidden space-y-4">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Skills</h2>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">List your skills (comma separated)</label>
+                        <textarea id="input-skills" rows="4" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="HTML, CSS, JavaScript, React..." oninput="updateResume()"></textarea>
+                        <p class="text-xs text-gray-400 mt-1">Separate each skill with a comma.</p>
+                    </div>
+                </div>
+
+                <!-- More Tab (Languages & Certifications) -->
+                <div id="tab-more" class="tab-content hidden space-y-8">
+                    <!-- Certifications -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Certifications</h2>
+                            <button onclick="addCertification()" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"><i class="fas fa-plus"></i> Add</button>
+                        </div>
+                        <div id="certification-forms" class="space-y-4">
+                            <!-- Dynamic forms injected here -->
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-200">
+
+                    <!-- Languages -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Languages</h2>
+                            <button onclick="addLanguage()" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"><i class="fas fa-plus"></i> Add</button>
+                        </div>
+                        <div id="language-forms" class="space-y-4">
+                            <!-- Dynamic forms injected here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- Preview Area -->
+        <div class="flex-1 bg-gray-200 overflow-y-auto custom-scroll p-4 md:p-8 flex justify-center">
+            
+            <!-- Resume Preview (A4) -->
+            <div id="resume-preview" class="a4-page p-0 bg-white">
+                <!-- Header -->
+                <header class="bg-slate-800 text-white p-8">
+                    <div class="flex gap-6 items-center">
+                        <div id="preview-initials" class="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-2xl font-bold border-2 border-white flex-shrink-0">
+                            XX
+                        </div>
+                        <div>
+                            <h1 id="preview-name" class="text-4xl font-bold tracking-tight">Your Name</h1>
+                            <p id="preview-title" class="text-xl text-blue-300 mt-1">Professional Title</p>
+                        </div>
+                    </div>
+                    <p id="preview-summary" class="mt-4 text-gray-300 text-sm leading-relaxed max-w-2xl">
+                        Your professional summary will appear here.
+                    </p>
+                    
+                    <div class="mt-6 flex flex-wrap gap-4 text-xs text-gray-300 border-t border-slate-700 pt-4">
+                        <div id="preview-email-container" class="flex items-center gap-2">
+                            <i class="fas fa-envelope text-blue-400"></i> <span id="preview-email">email@example.com</span>
+                        </div>
+                        <div id="preview-phone-container" class="flex items-center gap-2">
+                            <i class="fas fa-phone text-blue-400"></i> <span id="preview-phone">(555) 123-4567</span>
+                        </div>
+                        <div id="preview-location-container" class="flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-blue-400"></i> <span id="preview-location">City, State</span>
+                        </div>
+                        <div id="preview-website-container" class="flex items-center gap-2">
+                            <i class="fas fa-globe text-blue-400"></i> <span id="preview-website">mysite.com</span>
+                        </div>
+                        <div id="preview-linkedin-container" class="flex items-center gap-2">
+                            <i class="fab fa-linkedin text-blue-400"></i> <span id="preview-linkedin">linkedin.com/in/user</span>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="p-8 grid grid-cols-3 gap-8">
+                    <!-- Left Column (Main Content) -->
+                    <div class="col-span-2 space-y-6">
+                        <!-- Experience -->
+                        <section>
+                            <h2 class="text-lg font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                                <i class="fas fa-briefcase text-blue-500 text-sm"></i> Experience
+                            </h2>
+                            <div id="preview-experience" class="space-y-5">
+                                <!-- Dynamic Experience Content -->
+                            </div>
+                        </section>
+
+                        <!-- Projects -->
+                        <section id="preview-projects-section" class="hidden">
+                            <h2 class="text-lg font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                                <i class="fas fa-code text-blue-500 text-sm"></i> Projects
+                            </h2>
+                            <div id="preview-projects" class="space-y-4">
+                                <!-- Dynamic Projects Content -->
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Right Column (Sidebar) -->
+                    <div class="col-span-1 space-y-6">
+                        <!-- Education -->
+                        <section>
+                            <h2 class="text-lg font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                                <i class="fas fa-graduation-cap text-blue-500 text-sm"></i> Education
+                            </h2>
+                            <div id="preview-education" class="space-y-4">
+                                <!-- Dynamic Education Content -->
+                            </div>
+                        </section>
+
+                        <!-- Skills -->
+                        <section>
+                            <h2 class="text-lg font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                                <i class="fas fa-tools text-blue-500 text-sm"></i> Skills
+                            </h2>
+                            <div id="preview-skills" class="flex flex-wrap gap-2">
+                                <!-- Dynamic Skills Content -->
+                            </div>
+                        </section>
+
+                        <!-- Certifications -->
+                        <section id="preview-certifications-section" class="hidden">
+                            <h2 class="text-lg font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                                <i class="fas fa-certificate text-blue-500 text-sm"></i> Certifications
+                            </h2>
+                            <div id="preview-certifications" class="space-y-3">
+                                <!-- Dynamic Cert Content -->
+                            </div>
+                        </section>
+
+                        <!-- Languages -->
+                        <section id="preview-languages-section" class="hidden">
+                            <h2 class="text-lg font-bold text-slate-800 border-b-2 border-blue-500 pb-1 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                                <i class="fas fa-language text-blue-500 text-sm"></i> Languages
+                            </h2>
+                            <div id="preview-languages" class="space-y-2">
+                                <!-- Dynamic Lang Content -->
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Help / About Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0 pointer-events-none" style="transition: opacity 0.2s ease-in-out;">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden transform scale-95 transition-transform" style="transition: transform 0.2s ease-in-out;">
+            <div class="bg-slate-900 px-6 py-4 flex justify-between items-center border-b border-slate-700">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-400"></i> About ResumeBuilder
+                </h3>
+                <button onclick="toggleHelp()" class="text-gray-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-gray-600 leading-relaxed">
+                    <strong>ResumeBuilder</strong> is a free, privacy-first tool designed to help you create professional, ATS-friendly resumes directly in your browser.
+                </p>
+                
+                <h4 class="font-bold text-gray-800 text-sm uppercase tracking-wide border-b pb-1">Key Features</h4>
+                <ul class="space-y-3 text-sm text-gray-600">
+                    <li class="flex items-start gap-3">
+                        <div class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 text-xs"><i class="fas fa-bolt"></i></div>
+                        <div><strong>Live Preview:</strong> See your changes instantly on the A4 canvas as you type.</div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="mt-0.5 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 text-xs"><i class="fas fa-lock"></i></div>
+                        <div><strong>Privacy Focused:</strong> Everything happens locally. Your personal data never leaves your device.</div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="mt-0.5 w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0 text-xs"><i class="fas fa-file-pdf"></i></div>
+                        <div><strong>PDF Export:</strong> Download a clean, high-quality PDF ready for job applications.</div>
+                    </li>
+                </ul>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 flex gap-2 items-start">
+                    <i class="fas fa-lightbulb mt-0.5"></i>
+                    <span><strong>Tip:</strong> Click "Load Example" to see a fully populated resume, then edit the fields to make it your own!</span>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-6 py-3 flex justify-end">
+                <button onclick="toggleHelp()" class="bg-slate-900 text-white px-5 py-2 rounded hover:bg-slate-800 transition text-sm font-medium shadow-md">
+                    Get Started
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data State
+        let resumeData = {
+            personal: {
+                name: '',
+                title: '',
+                summary: '',
+                email: '',
+                phone: '',
+                location: '',
+                website: '',
+                linkedin: ''
+            },
+            experience: [],
+            projects: [],
+            education: [],
+            skills: '',
+            certifications: [],
+            languages: []
+        };
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-blue-50');
+                el.classList.add('text-gray-500');
+            });
+            const activeBtn = document.querySelector(`button[data-tab="${tabId}"]`);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-gray-500');
+                activeBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-blue-50');
+            }
+        }
+
+        // Live Update Function
+        function updateResume() {
+            // Personal Info
+            resumeData.personal.name = document.getElementById('input-name').value;
+            resumeData.personal.title = document.getElementById('input-title').value;
+            resumeData.personal.summary = document.getElementById('input-summary').value;
+            resumeData.personal.email = document.getElementById('input-email').value;
+            resumeData.personal.phone = document.getElementById('input-phone').value;
+            resumeData.personal.location = document.getElementById('input-location').value;
+            resumeData.personal.website = document.getElementById('input-website').value;
+            resumeData.personal.linkedin = document.getElementById('input-linkedin').value;
+
+            // DOM Updates for Personal Info
+            document.getElementById('preview-name').textContent = resumeData.personal.name || 'Your Name';
+            document.getElementById('preview-initials').textContent = getInitials(resumeData.personal.name) || 'XX';
+            document.getElementById('preview-title').textContent = resumeData.personal.title || 'Professional Title';
+            document.getElementById('preview-summary').textContent = resumeData.personal.summary || 'Your professional summary will appear here.';
+            
+            document.getElementById('preview-email').textContent = resumeData.personal.email;
+            document.getElementById('preview-email-container').style.display = resumeData.personal.email ? 'flex' : 'none';
+            
+            document.getElementById('preview-phone').textContent = resumeData.personal.phone;
+            document.getElementById('preview-phone-container').style.display = resumeData.personal.phone ? 'flex' : 'none';
+            
+            document.getElementById('preview-location').textContent = resumeData.personal.location;
+            document.getElementById('preview-location-container').style.display = resumeData.personal.location ? 'flex' : 'none';
+
+            document.getElementById('preview-website').textContent = resumeData.personal.website;
+            document.getElementById('preview-website-container').style.display = resumeData.personal.website ? 'flex' : 'none';
+            
+            document.getElementById('preview-linkedin').textContent = resumeData.personal.linkedin;
+            document.getElementById('preview-linkedin-container').style.display = resumeData.personal.linkedin ? 'flex' : 'none';
+
+            // Lists
+            renderExperiencePreview();
+            renderProjectsPreview();
+            renderEducationPreview();
+            renderCertificationsPreview();
+            renderLanguagesPreview();
+
+            // Skills
+            resumeData.skills = document.getElementById('input-skills').value;
+            renderSkillsPreview();
+        }
+
+        function getInitials(name) {
+            if (!name) return '';
+            const parts = name.split(' ');
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        // --- Experience Handling ---
+        function addExperience(data = {}) {
+            const id = Date.now() + Math.random();
+            const container = document.getElementById('experience-forms');
+            const div = document.createElement('div');
+            div.className = 'bg-white p-4 border border-gray-200 rounded shadow-sm relative group';
+            div.dataset.id = id;
+            div.innerHTML = `
+                <button onclick="removeExperience(${id})" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash"></i></button>
+                <div class="space-y-3">
+                    <input type="text" class="exp-role w-full text-sm font-bold border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Job Title" value="${data.role || ''}" oninput="updateExperienceData(${id})">
+                    <input type="text" class="exp-company w-full text-sm border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Company Name" value="${data.company || ''}" oninput="updateExperienceData(${id})">
+                    <div class="flex gap-2">
+                        <input type="text" class="exp-date w-full text-xs border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Duration (e.g. 2020 - Present)" value="${data.date || ''}" oninput="updateExperienceData(${id})">
+                    </div>
+                    <textarea class="exp-desc w-full text-xs border border-gray-200 rounded p-2 outline-none focus:border-blue-500" rows="3" placeholder="Job description..." oninput="updateExperienceData(${id})">${data.desc || ''}</textarea>
+                </div>
+            `;
+            container.prepend(div);
+            
+            resumeData.experience.unshift({
+                id: id,
+                role: data.role || '',
+                company: data.company || '',
+                date: data.date || '',
+                desc: data.desc || ''
+            });
+            renderExperiencePreview();
+        }
+
+        function removeExperience(id) {
+            document.querySelector(`#experience-forms div[data-id="${id}"]`).remove();
+            resumeData.experience = resumeData.experience.filter(item => item.id !== id);
+            renderExperiencePreview();
+        }
+
+        function updateExperienceData(id) {
+            const el = document.querySelector(`#experience-forms div[data-id="${id}"]`);
+            const item = resumeData.experience.find(i => i.id === id);
+            if (item) {
+                item.role = el.querySelector('.exp-role').value;
+                item.company = el.querySelector('.exp-company').value;
+                item.date = el.querySelector('.exp-date').value;
+                item.desc = el.querySelector('.exp-desc').value;
+            }
+            renderExperiencePreview();
+        }
+
+        function renderExperiencePreview() {
+            const container = document.getElementById('preview-experience');
+            container.innerHTML = resumeData.experience.map(item => `
+                <div class="mb-4">
+                    <div class="flex justify-between items-baseline mb-1">
+                        <h3 class="font-bold text-slate-800">${item.role || 'Job Title'}</h3>
+                        <span class="text-xs text-blue-600 font-medium">${item.date || 'Date'}</span>
+                    </div>
+                    <div class="text-sm font-medium text-slate-600 mb-2">${item.company || 'Company Name'}</div>
+                    <p class="text-sm text-gray-600 whitespace-pre-line leading-relaxed">${item.desc || 'Description of your responsibilities and achievements.'}</p>
+                </div>
+            `).join('');
+        }
+
+        // --- Projects Handling ---
+        function addProject(data = {}) {
+            const id = Date.now() + Math.random();
+            const container = document.getElementById('project-forms');
+            const div = document.createElement('div');
+            div.className = 'bg-white p-4 border border-gray-200 rounded shadow-sm relative group';
+            div.dataset.id = id;
+            div.innerHTML = `
+                <button onclick="removeProject(${id})" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash"></i></button>
+                <div class="space-y-3">
+                    <input type="text" class="proj-title w-full text-sm font-bold border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Project Title" value="${data.title || ''}" oninput="updateProjectData(${id})">
+                    <input type="text" class="proj-link w-full text-xs border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Link (optional)" value="${data.link || ''}" oninput="updateProjectData(${id})">
+                    <textarea class="proj-desc w-full text-xs border border-gray-200 rounded p-2 outline-none focus:border-blue-500" rows="2" placeholder="Brief description..." oninput="updateProjectData(${id})">${data.desc || ''}</textarea>
+                </div>
+            `;
+            container.prepend(div);
+            
+            resumeData.projects.unshift({
+                id: id,
+                title: data.title || '',
+                link: data.link || '',
+                desc: data.desc || ''
+            });
+            renderProjectsPreview();
+        }
+
+        function removeProject(id) {
+            document.querySelector(`#project-forms div[data-id="${id}"]`).remove();
+            resumeData.projects = resumeData.projects.filter(item => item.id !== id);
+            renderProjectsPreview();
+        }
+
+        function updateProjectData(id) {
+            const el = document.querySelector(`#project-forms div[data-id="${id}"]`);
+            const item = resumeData.projects.find(i => i.id === id);
+            if (item) {
+                item.title = el.querySelector('.proj-title').value;
+                item.link = el.querySelector('.proj-link').value;
+                item.desc = el.querySelector('.proj-desc').value;
+            }
+            renderProjectsPreview();
+        }
+
+        function renderProjectsPreview() {
+            const container = document.getElementById('preview-projects');
+            const section = document.getElementById('preview-projects-section');
+            
+            if (resumeData.projects.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            container.innerHTML = resumeData.projects.map(item => `
+                <div class="mb-3">
+                    <div class="flex justify-between items-baseline">
+                        <h3 class="font-bold text-slate-800 text-sm">${item.title || 'Project Name'}</h3>
+                        ${item.link ? `<a href="${item.link}" target="_blank" class="text-xs text-blue-500 hover:underline"><i class="fas fa-link text-[10px]"></i> View</a>` : ''}
+                    </div>
+                    <p class="text-sm text-gray-600 leading-relaxed mt-1">${item.desc || 'Project description goes here.'}</p>
+                </div>
+            `).join('');
+        }
+
+        // --- Education Handling ---
+        function addEducation(data = {}) {
+            const id = Date.now() + Math.random();
+            const container = document.getElementById('education-forms');
+            const div = document.createElement('div');
+            div.className = 'bg-white p-4 border border-gray-200 rounded shadow-sm relative group';
+            div.dataset.id = id;
+            div.innerHTML = `
+                <button onclick="removeEducation(${id})" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash"></i></button>
+                <div class="space-y-3">
+                    <input type="text" class="edu-degree w-full text-sm font-bold border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Degree / Certificate" value="${data.degree || ''}" oninput="updateEducationData(${id})">
+                    <input type="text" class="edu-school w-full text-sm border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="School / University" value="${data.school || ''}" oninput="updateEducationData(${id})">
+                    <input type="text" class="edu-date w-full text-xs border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Year" value="${data.date || ''}" oninput="updateEducationData(${id})">
+                </div>
+            `;
+            container.prepend(div);
+            
+            resumeData.education.unshift({
+                id: id,
+                degree: data.degree || '',
+                school: data.school || '',
+                date: data.date || ''
+            });
+            renderEducationPreview();
+        }
+
+        function removeEducation(id) {
+            document.querySelector(`#education-forms div[data-id="${id}"]`).remove();
+            resumeData.education = resumeData.education.filter(item => item.id !== id);
+            renderEducationPreview();
+        }
+
+        function updateEducationData(id) {
+            const el = document.querySelector(`#education-forms div[data-id="${id}"]`);
+            const item = resumeData.education.find(i => i.id === id);
+            if (item) {
+                item.degree = el.querySelector('.edu-degree').value;
+                item.school = el.querySelector('.edu-school').value;
+                item.date = el.querySelector('.edu-date').value;
+            }
+            renderEducationPreview();
+        }
+
+        function renderEducationPreview() {
+            const container = document.getElementById('preview-education');
+            container.innerHTML = resumeData.education.map(item => `
+                <div class="mb-3">
+                    <h3 class="font-bold text-slate-800 text-sm">${item.degree || 'Degree'}</h3>
+                    <div class="text-xs text-slate-600">${item.school || 'University'}</div>
+                    <div class="text-xs text-blue-500 mt-0.5">${item.date || 'Year'}</div>
+                </div>
+            `).join('');
+        }
+
+        // --- Certifications Handling ---
+        function addCertification(data = {}) {
+            const id = Date.now() + Math.random();
+            const container = document.getElementById('certification-forms');
+            const div = document.createElement('div');
+            div.className = 'bg-white p-3 border border-gray-200 rounded shadow-sm relative group flex gap-2 items-start';
+            div.dataset.id = id;
+            div.innerHTML = `
+                <div class="flex-1 space-y-2">
+                    <input type="text" class="cert-name w-full text-sm font-medium border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Certificate Name" value="${data.name || ''}" oninput="updateCertificationData(${id})">
+                    <div class="flex gap-2">
+                        <input type="text" class="cert-issuer w-full text-xs border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Issuer" value="${data.issuer || ''}" oninput="updateCertificationData(${id})">
+                        <input type="text" class="cert-year w-20 text-xs border-b border-gray-200 pb-1 outline-none focus:border-blue-500 text-right" placeholder="Year" value="${data.year || ''}" oninput="updateCertificationData(${id})">
+                    </div>
+                </div>
+                <button onclick="removeCertification(${id})" class="text-gray-300 hover:text-red-500"><i class="fas fa-times"></i></button>
+            `;
+            container.prepend(div);
+            
+            resumeData.certifications.unshift({
+                id: id,
+                name: data.name || '',
+                issuer: data.issuer || '',
+                year: data.year || ''
+            });
+            renderCertificationsPreview();
+        }
+
+        function removeCertification(id) {
+            document.querySelector(`#certification-forms div[data-id="${id}"]`).remove();
+            resumeData.certifications = resumeData.certifications.filter(item => item.id !== id);
+            renderCertificationsPreview();
+        }
+
+        function updateCertificationData(id) {
+            const el = document.querySelector(`#certification-forms div[data-id="${id}"]`);
+            const item = resumeData.certifications.find(i => i.id === id);
+            if (item) {
+                item.name = el.querySelector('.cert-name').value;
+                item.issuer = el.querySelector('.cert-issuer').value;
+                item.year = el.querySelector('.cert-year').value;
+            }
+            renderCertificationsPreview();
+        }
+
+        function renderCertificationsPreview() {
+            const container = document.getElementById('preview-certifications');
+            const section = document.getElementById('preview-certifications-section');
+            
+            if (resumeData.certifications.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            container.innerHTML = resumeData.certifications.map(item => `
+                <div class="mb-2">
+                    <h3 class="font-bold text-slate-800 text-xs">${item.name || 'Certificate'}</h3>
+                    <div class="text-[10px] text-slate-500 flex justify-between">
+                        <span>${item.issuer || 'Issuer'}</span>
+                        <span>${item.year || ''}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Languages Handling ---
+        function addLanguage(data = {}) {
+            const id = Date.now() + Math.random();
+            const container = document.getElementById('language-forms');
+            const div = document.createElement('div');
+            div.className = 'bg-white p-2 border border-gray-200 rounded shadow-sm relative group flex gap-2 items-center';
+            div.dataset.id = id;
+            div.innerHTML = `
+                <input type="text" class="lang-name flex-1 text-sm border-b border-gray-200 pb-1 outline-none focus:border-blue-500" placeholder="Language" value="${data.language || ''}" oninput="updateLanguageData(${id})">
+                <input type="text" class="lang-level w-1/3 text-xs border-b border-gray-200 pb-1 outline-none focus:border-blue-500 text-right" placeholder="Level" value="${data.level || ''}" oninput="updateLanguageData(${id})">
+                <button onclick="removeLanguage(${id})" class="text-gray-300 hover:text-red-500 ml-1"><i class="fas fa-times"></i></button>
+            `;
+            container.prepend(div);
+            
+            resumeData.languages.unshift({
+                id: id,
+                language: data.language || '',
+                level: data.level || ''
+            });
+            renderLanguagesPreview();
+        }
+
+        function removeLanguage(id) {
+            document.querySelector(`#language-forms div[data-id="${id}"]`).remove();
+            resumeData.languages = resumeData.languages.filter(item => item.id !== id);
+            renderLanguagesPreview();
+        }
+
+        function updateLanguageData(id) {
+            const el = document.querySelector(`#language-forms div[data-id="${id}"]`);
+            const item = resumeData.languages.find(i => i.id === id);
+            if (item) {
+                item.language = el.querySelector('.lang-name').value;
+                item.level = el.querySelector('.lang-level').value;
+            }
+            renderLanguagesPreview();
+        }
+
+        function renderLanguagesPreview() {
+            const container = document.getElementById('preview-languages');
+            const section = document.getElementById('preview-languages-section');
+            
+            if (resumeData.languages.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            container.innerHTML = resumeData.languages.map(item => `
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-medium text-slate-700">${item.language || 'Language'}</span>
+                    <span class="text-slate-500">${item.level || ''}</span>
+                </div>
+            `).join('');
+        }
+
+        // --- Skills Handling ---
+        function renderSkillsPreview() {
+            const container = document.getElementById('preview-skills');
+            const skills = resumeData.skills.split(',').map(s => s.trim()).filter(s => s);
+            if (skills.length === 0) {
+                container.innerHTML = '<span class="text-xs text-gray-400 italic">Add skills to see them here</span>';
+                return;
+            }
+            container.innerHTML = skills.map(skill => `
+                <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">${skill}</span>
+            `).join('');
+        }
+
+        // Help Modal Toggle
+        function toggleHelp() {
+            const modal = document.getElementById('help-modal');
+            const content = modal.querySelector('div');
+            
+            if (modal.classList.contains('hidden')) {
+                // Open
+                modal.classList.remove('hidden', 'pointer-events-none', 'opacity-0');
+                // Small delay to allow display:block to apply before opacity transition
+                setTimeout(() => {
+                    modal.classList.add('opacity-100');
+                    content.classList.remove('scale-95');
+                    content.classList.add('scale-100');
+                }, 10);
+            } else {
+                // Close
+                modal.classList.remove('opacity-100');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden', 'pointer-events-none', 'opacity-0');
+                }, 200);
+            }
+        }
+
+        // Example Data Loader
+        function loadExample() {
+            document.getElementById('input-name').value = "John Anderson";
+            document.getElementById('input-title').value = "Senior Software Engineer";
+            document.getElementById('input-summary').value = "Passionate developer with 8+ years of experience building scalable web applications and leading high-performance teams. Expert in modern JavaScript frameworks and cloud architecture.";
+            document.getElementById('input-email').value = "john.anderson@email.com";
+            document.getElementById('input-phone').value = "(555) 123-4567";
+            document.getElementById('input-location').value = "San Francisco, CA";
+            document.getElementById('input-website').value = "johnanderson.dev";
+            document.getElementById('input-linkedin').value = "linkedin.com/in/johnanderson";
+            document.getElementById('input-skills').value = "JavaScript, React, Node.js, Python, AWS, Docker, TypeScript, SQL, Git, Agile, CI/CD, MongoDB";
+
+            // Clear dynamic lists
+            resumeData.experience = [];
+            document.getElementById('experience-forms').innerHTML = '';
+            resumeData.projects = [];
+            document.getElementById('project-forms').innerHTML = '';
+            resumeData.education = [];
+            document.getElementById('education-forms').innerHTML = '';
+            resumeData.certifications = [];
+            document.getElementById('certification-forms').innerHTML = '';
+            resumeData.languages = [];
+            document.getElementById('language-forms').innerHTML = '';
+
+            // Add experiences (reverse chronological order for array unshift logic)
+            addExperience({
+                role: "Senior Software Engineer", 
+                company: "TechCorp Inc.", 
+                date: "Jan 2021 - Present", 
+                desc: "Led a team of 5 developers in building a microservices architecture. Designed RESTful APIs serving 10M+ daily requests. Improved system latency by 40%."
+            });
+
+            addExperience({
+                role: "Software Engineer", 
+                company: "StartupXYZ", 
+                date: "Jun 2018 - Dec 2020", 
+                desc: "Developed full-stack web applications using React and Node.js. Implemented CI/CD pipelines reducing deployment time by 60%. Collaborated with design and product teams to launch 3 major features."
+            });
+
+            // Add projects
+            addProject({
+                title: "E-Commerce Dashboard",
+                link: "github.com/john/dashboard",
+                desc: "Real-time analytics dashboard built with Next.js and Tailwind CSS. Features include data visualization, dark mode, and user authentication."
+            });
+
+            addProject({
+                title: "Task Master App",
+                desc: "Productivity application with drag-and-drop interface, local storage sync, and team collaboration features."
+            });
+
+            // Add education
+            addEducation({
+                degree: "BS Computer Science", 
+                school: "Stanford University", 
+                date: "2012 - 2016"
+            });
+
+            // Add certifications
+            addCertification({
+                name: "AWS Certified Solutions Architect",
+                issuer: "Amazon",
+                year: "2023"
+            });
+            addCertification({
+                name: "Google Professional Cloud Developer",
+                issuer: "Google",
+                year: "2022"
+            });
+
+            // Add languages
+            addLanguage({ language: "English", level: "Native" });
+            addLanguage({ language: "Spanish", level: "Intermediate" });
+
+            updateResume();
+        }
+
+        function printResume() {
+            window.print();
+        }
+
+        function clearData() {
+            if(!confirm("Are you sure you want to clear all data?")) return;
+
+            document.getElementById('input-name').value = "";
+            document.getElementById('input-title').value = "";
+            document.getElementById('input-summary').value = "";
+            document.getElementById('input-email').value = "";
+            document.getElementById('input-phone').value = "";
+            document.getElementById('input-location').value = "";
+            document.getElementById('input-website').value = "";
+            document.getElementById('input-linkedin').value = "";
+            document.getElementById('input-skills').value = "";
+
+            // Clear dynamic lists
+            resumeData.experience = [];
+            document.getElementById('experience-forms').innerHTML = '';
+            resumeData.projects = [];
+            document.getElementById('project-forms').innerHTML = '';
+            resumeData.education = [];
+            document.getElementById('education-forms').innerHTML = '';
+            resumeData.certifications = [];
+            document.getElementById('certification-forms').innerHTML = '';
+            resumeData.languages = [];
+            document.getElementById('language-forms').innerHTML = '';
+
+            updateResume();
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExample();
+        });
+
+    </script>
+</body>
+</html>
